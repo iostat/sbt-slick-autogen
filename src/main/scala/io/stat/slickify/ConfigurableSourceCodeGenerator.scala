@@ -21,7 +21,7 @@ case class ConfigurableSourceCodeGenerator(model: Model, config: CodegenSettings
     }
 
     override def Column = new Column(_) {
-      override def rawName = config.tableColumnTransformer(super.rawName, table, this.model.name)
+      override def rawName = config.tableColumnTransformer(super.rawName, table, this.model, this.model.name)
     }
   }
 }

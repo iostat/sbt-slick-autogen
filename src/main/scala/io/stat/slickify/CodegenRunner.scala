@@ -6,8 +6,7 @@ import java.util.Date
 import com.typesafe.config.ConfigFactory
 import io.stat.slickify.TypeMagic.DriverWithCapabilities
 import sbt.Path.richFile
-import sbt.std.TaskStreams
-import sbt.{File, Logger, ScopedKey}
+import sbt.{File, Logger}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext}
@@ -31,7 +30,7 @@ object CodegenRunner {
         else
           None
 
-      log.info(s"[codegen/run] lastOrmChange => $lastOrmChange")
+      log.info(s"[codegen/run] lastOrmChange     => $lastOrmChange")
 
       sqlDate.map(_.getTime) match {
         case None =>
@@ -56,7 +55,7 @@ object CodegenRunner {
     }
 
     def execute(): Unit = {
-      log.info(s"[codegen/run] profile       => ${driver.getClass.getCanonicalName}")
+      log.info(s"[codegen/run] profile           => ${driver.getClass.getCanonicalName}")
 
       implicit val ec = ExecutionContext.global
 
@@ -65,7 +64,7 @@ object CodegenRunner {
         if (profileName.endsWith("$")) profileName.substring(0, profileName.length - 1) else profileName
 
       val lastSqlUpdateTime = config.schemaChangePredicate(config.schemaName, driver, db, log, ec)
-      log.info(s"[codegen/run] lastSqlChange => $lastSqlUpdateTime")
+      log.info(s"[codegen/run] lastSqlChange     => $lastSqlUpdateTime")
 
       if(config.alwaysUpdate) {
         log.warn("[codegen/run] alwaysUpdate set to true, will run codegen!")
@@ -76,7 +75,8 @@ object CodegenRunner {
           db.run(
             driver.defaultTables
               .map(_.filter(config.tableFilterPredicate))
-              .flatMap(driver.createModelBuilder(_, ignoreInvalidDefaults = true).buildModel))
+              .flatMap(driver.createModelBuilder(_, ignoreInvalidDefaults = true).buildModel)
+          )
 
         val model = Await.result(filterTablesAndSave, Duration.Inf)
 
@@ -99,9 +99,7 @@ object CodegenRunner {
   }
 
 
-  def apply: ((CodegenSettings, TaskStreams[ScopedKey[_]]) => Seq[File]) = (settings, streams) => {
-      val log = streams.log
-
+  def apply: ((CodegenSettings, Logger) => Seq[File]) = (settings, log) => {
       val loadedConfig = ConfigFactory.parseFile(settings.databaseConfigFile)
       val dbConfig     = TypeMagic.loadReifiedConfig(settings.databaseConfigKey, loadedConfig)
       val driver       = dbConfig.driver

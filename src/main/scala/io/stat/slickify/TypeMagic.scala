@@ -2,12 +2,13 @@ package io.stat.slickify
 
 import java.util.Date
 
-import sbt.{File, Logger}
 import com.typesafe.config.Config
+import sbt.{File, Logger}
 import slick.backend.DatabaseConfig
 import slick.codegen.SourceCodeGenerator
 import slick.driver._
 import slick.jdbc.meta.MTable
+import slick.model.Column
 import slick.profile.BasicDriver
 
 import scala.concurrent.ExecutionContext
@@ -20,10 +21,6 @@ import scala.reflect.ClassTag
   * @author Ilya Ostrovskiy (https://github.com/iostat/) 
   */
 private[slickify] object TypeMagic {
-  /**
-    * A type of Slick profile that has the necessary capabilities for us to be able to use it without a
-    * concrete reference to any type of driver.
-    */
   type DriverWithCapabilities   = BasicDriver with JdbcDriver
   type ProfileWithCapabilities  = T forSome { type T <: JdbcProfile }
   type DatabaseWithCapabilities = ProfileWithCapabilities#Backend#Database
@@ -35,14 +32,14 @@ private[slickify] object TypeMagic {
 
   type NamerFunction         = ((String => String), String) => String
   type ValueNamerFunction    = (String, OverridenTable) => String
-  type ColumnNamerFunction   = (String, OverridenTable, String) => String
+  type ColumnNamerFunction   = (String, OverridenTable, Column, String) => String
   type SchemaChangePredicate =
   ((String, DriverWithCapabilities, DatabaseWithCapabilities, Logger, ExecutionContext) => Option[Date])
 
   type TableFilterPredicate  = MTable => Boolean
 
   private[slickify] type CodegenSettingsContinuation =
-    ((ColumnNamerFunction, SchemaChangePredicate, Boolean, File, String, Long, String) => CodegenSettings)
+    ((ColumnNamerFunction, SchemaChangePredicate, Boolean, File, String, Long, String, Logger) => CodegenSettings)
 
 
   def loadReifiedConfig(confKey: String, config: Config): DatabaseConfig[DriverWithCapabilities] = {

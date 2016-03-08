@@ -3,8 +3,7 @@ package io.stat.slickify
 import java.sql.Timestamp
 import java.util.TimeZone
 
-import io.stat.slickify.TypeMagic.{OverridenTable, SchemaChangePredicate}
-import slick.jdbc.meta.MTable
+import io.stat.slickify.TypeMagic._
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -16,15 +15,51 @@ import scala.concurrent.duration.Duration
   * @author Ilya Ostrovskiy (https://github.com/iostat/) 
   */
 object Helpers {
+  /** Ripped from slick.codegen.AbstractGenerator **/
+  /** Slick code generator string extension methods. (Warning: Not unicode-safe, uses String#apply) */
+  implicit class StringExtensions(val str: String){
+    /** Lowercases the first (16 bit) character. (Warning: Not unicode-safe, uses String#apply) */
+    final def uncapitalize: String = str(0).toString.toLowerCase + str.tail
 
-  def all: MTable => Boolean = _ => true
+    /**
+      * Capitalizes the first (16 bit) character of each word separated by one or more '_'. Lower cases all other characters.
+      * Removes one '_' from each sequence of one or more subsequent '_' (to avoid collision).
+      * (Warning: Not unicode-safe, uses String#apply)
+      */
+    final def toCamelCase: String
+    = str.toLowerCase
+      .split("_")
+      .map{ case "" => "_" case s => s } // avoid possible collisions caused by multiple '_'
+      .map(_.capitalize)
+      .mkString("")
+  }
 
-  def copyName: String => String = identity
-  def columnIdentity: (String, String) => String = (_, c) => c
 
-  def defaultNamer(originalMethod: (String => String), input: String): String = originalMethod(input)
-  def defaultValueNamer(originalValue: String, table: OverridenTable): String = originalValue
-  def defaultColumnNamer(originalValue: String, table: OverridenTable, columnModelName: String): String = originalValue
+  object tableFilters {
+    def all: TableFilterPredicate = _ => true
+    def only(included: String*): TableFilterPredicate = mt => included.contains(mt.name.name)
+    def except(excluded: String*): TableFilterPredicate = mt => !excluded.contains(mt.name.name)
+  }
+
+  object namers {
+    def defaultNamer: NamerFunction = (originalMethod, input) => originalMethod(input)
+    def noChange:     NamerFunction = (_, input)              => input
+
+    def defaultEntityNamer:  NamerFunction = (originalMethod, input) => originalMethod(input)
+    def noChangeEntityNamer: NamerFunction = (_, input)              => input + "Row"
+
+    def defaultValueNamer:  ValueNamerFunction = (_,table) => table.model.name.table.toCamelCase.uncapitalize
+    def noChangeValueNamer: ValueNamerFunction = (_,table) => table.model.name.table.uncapitalize
+
+    def defaultColumnNamer: ColumnNamerFunction  = (_,_,_,columnModelName) => columnModelName.toCamelCase.uncapitalize
+    def noChangeColumnNamer: ColumnNamerFunction = (originalValue,_,_,_)   => originalValue
+    def camelCaseNormalizingColumnNamer: ColumnNamerFunction = (_,_,_,columnModelName) => {
+      columnModelName.contains("_") match {
+        case true  => columnModelName.toCamelCase.uncapitalize
+        case false => columnModelName.uncapitalize
+      }
+    }
+  }
 
   object offsets {
     def none: Long = 0
@@ -48,7 +83,8 @@ object Helpers {
             `information_schema`.`TABLES`
           WHERE
             `TABLE_SCHEMA` = $schemaName
-          GROUP BY `TABLE_SCHEMA`
+          GROUP BY
+            `TABLE_SCHEMA`
           ORDER BY
             1, 2
             DESC

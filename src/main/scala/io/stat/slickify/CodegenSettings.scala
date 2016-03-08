@@ -54,5 +54,15 @@ private[slickify] sealed case class CodegenSettings(
    databaseConfigFile:     File,
    databaseConfigKey:      String,
    systemTimeOffset:       Long,
-   schemaName:             String
-)
+   schemaName:             String,
+   private val log:  Logger) {
+  log.info(s"[codegen/set] out/directory     => $destination")
+  log.info(s"[codegen/set] out/package       => $outputPackage")
+  log.info(s"[codegen/set] out/object        => $outputClassName")
+  log.info(s"[codegen/set] out/file          => $outputFileName")
+  log.info(s"[codegen/set] conf/alwaysUpdate => $alwaysUpdate")
+  log.info(s"[codegen/set] conf/file         => $databaseConfigFile")
+  log.info(s"[codegen/set] conf/key          => $databaseConfigKey")
+  log.info(s"[codegen/set] db/timeOffset     => $systemTimeOffset")
+  log.info(s"[codegen/set] db/schema         => $schemaName")
+}

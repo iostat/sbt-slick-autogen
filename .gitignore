@@ -178,3 +178,6 @@ core-site.xml
 
 # dont track protobuf_generated directories, they mostly exist to pacify IDEA
 /*/src/*/protobuf_generated/
+
+# Don't check-in publish settings
+/publish.sbt

@@ -181,3 +181,4 @@ core-site.xml
 
 # Don't check-in publish settings
 /publish.sbt
+/project/publish-support.sbt
